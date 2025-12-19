@@ -1,11 +1,13 @@
 import express from "express";
 import LoginController from "../controllers/LoginController.js";
+import { validate } from "../middleware/validate.js";
+import { loginSchema, registerSchema } from "../validations/authValidations.js";
 
 const router = express.Router();
 
-router.post("/", LoginController.login);
+router.post("/", validate(loginSchema), LoginController.login);
 
-router.post("/register", LoginController.register);
+router.post("/register", validate(registerSchema), LoginController.register);
 
 router.post("/logout", LoginController.logout);
 

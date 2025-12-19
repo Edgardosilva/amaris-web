@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import { verificarAdmin } from "@/app/actions/verificar-auth";
 import { getAllAppointments, type Appointment } from "@/app/actions/appointments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,31 +38,22 @@ export default function AdminPage() {
   });
 
   useEffect(() => {
-    // Esperar a que el store se hidrate desde localStorage
-    if (!_hasHydrated) {
-      console.log('⏳ Esperando hidratación del store...');
-      return;
-    }
+    const checkAdminAccess = async () => {
+      console.log('🔐 Verificando acceso de admin...');
+      const result = await verificarAdmin();
+      
+      if (!result.isAdmin) {
+        console.log('❌ Acceso denegado:', result.error);
+        router.push("/login");
+        return;
+      }
 
-    console.log('👤 Estado de auth en admin:', { isAuthenticated, isAdmin, user });
-    
-    // Verificar autenticación después de hidratar
-    if (!isAuthenticated) {
-      console.log('❌ No autenticado, redirigiendo a login');
-      router.push("/login");
-      return;
-    }
+      console.log('✅ Usuario admin verificado, cargando citas');
+      fetchAllAppointments();
+    };
 
-    if (!isAdmin) {
-      console.log('❌ No es admin, redirigiendo a dashboard');
-      router.push("/dashboard");
-      return;
-    }
-
-    console.log('✅ Usuario admin autenticado, cargando citas');
-    // Si está autenticado y es admin, cargar las citas
-    fetchAllAppointments();
-  }, [_hasHydrated, isAuthenticated, isAdmin, router, user]);
+    checkAdminAccess();
+  }, [router]);
 
   const fetchAllAppointments = async () => {
     try {

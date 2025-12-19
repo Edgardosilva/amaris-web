@@ -2,14 +2,22 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { loginSchema, registerSchema } from "@/lib/validations/auth";
+import { ZodError } from "zod";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://amaris-api-production.up.railway.app';
 
 export async function loginAction(formData: FormData) {
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  
+  // Extraer datos del formulario
+  const rawData = {
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+  };
+
+  // Validar y sanitizar con Zod
   try {
+    const validatedData = loginSchema.parse(rawData);
+    
     const response = await fetch(
       `${API_URL}/login`,
       {
@@ -19,8 +27,8 @@ export async function loginAction(formData: FormData) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email,
-          contraseña: password,
+          email: validatedData.email,
+          contraseña: validatedData.password,
         }),
       }
     );
@@ -73,7 +81,7 @@ export async function loginAction(formData: FormData) {
       id: data.user?.id || data.id || "",
       nombre: data.user?.nombre || data.nombre || "",
       apellido: data.user?.apellido || data.apellido || "",
-      email: data.user?.email || data.email || email,
+      email: data.user?.email || data.email || validatedData.email,
       telefono: data.user?.telefono || data.telefono || "",
       rol: data.user?.rol || "usuario",
     };
@@ -83,6 +91,15 @@ export async function loginAction(formData: FormData) {
       user: userInfo
     };
   } catch (error) {
+    // Manejar errores de validación de Zod
+    if (error instanceof ZodError) {
+      const firstError = error.errors[0];
+      return {
+        success: false,
+        error: firstError.message,
+      };
+    }
+    
     console.error("Error al hacer login:", error);
     return { 
       success: false, 
@@ -92,14 +109,19 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function registerAction(formData: FormData) {
+  // Extraer datos del formulario
+  const rawData = {
+    nombre: formData.get("nombre") as string,
+    apellido: formData.get("apellido") as string,
+    email: formData.get("email") as string,
+    contraseña: formData.get("contraseña") as string,
+    telefono: formData.get("telefono") as string,
+  };
 
-  const nombre = formData.get("nombre") as string;
-  const apellido = formData.get("apellido") as string;
-  const email = formData.get("email") as string;
-  const contraseña = formData.get("contraseña") as string;
-  const telefono = formData.get("telefono") as string;
-
+  // Validar y sanitizar con Zod
   try {
+    const validatedData = registerSchema.parse(rawData);
+    
     const response = await fetch(
       `${API_URL}/login/register`,
       {
@@ -108,11 +130,11 @@ export async function registerAction(formData: FormData) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          nombre,
-          apellido,
-          email,
-          contraseña,
-          telefono,
+          nombre: validatedData.nombre,
+          apellido: validatedData.apellido,
+          email: validatedData.email,
+          contraseña: validatedData.contraseña,
+          telefono: validatedData.telefono,
         }),
       }
     );
@@ -125,6 +147,15 @@ export async function registerAction(formData: FormData) {
     }
     return { success: true };
   } catch (error) {
+    // Manejar errores de validación de Zod
+    if (error instanceof ZodError) {
+      const firstError = error.errors[0];
+      return {
+        success: false,
+        error: firstError.message,
+      };
+    }
+    
     console.error("Error al registrar:", error);
     return {
       success: false,

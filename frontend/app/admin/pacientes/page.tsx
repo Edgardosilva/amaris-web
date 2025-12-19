@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { verificarAdmin } from "@/app/actions/verificar-auth";
 import { searchPatients, getPatientHistory } from "@/app/actions/patients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,8 +58,22 @@ export default function PacientesPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
-    loadPatients();
-  }, []);
+    const checkAdminAccess = async () => {
+      console.log('🔐 Verificando acceso de admin...');
+      const result = await verificarAdmin();
+      
+      if (!result.isAdmin) {
+        console.log('❌ Acceso denegado:', result.error);
+        router.push("/login");
+        return;
+      }
+
+      console.log('✅ Usuario admin verificado');
+      loadPatients();
+    };
+
+    checkAdminAccess();
+  }, [router]);
 
   const loadPatients = async () => {
     setLoading(true);

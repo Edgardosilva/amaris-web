@@ -3,12 +3,10 @@ import db from '../database.js';
 import jwt from 'jsonwebtoken';
 
 export const register = async (req, res) => {
+    // Los datos ya están validados y sanitizados por el middleware de Zod
     const { nombre, apellido, email, contraseña, telefono } = req.body;
 
     try {
-        if (!nombre || !apellido || !email || !contraseña || !telefono) 
-            return res.status(400).json({ error: "Faltan datos obligatorios" });
-
         const [rows] = await db.query('SELECT id FROM usuarios_registrados WHERE email = ?', [email]);
         if (rows.length) return res.status(409).json({ error: "El usuario ya existe" });
 
@@ -45,9 +43,6 @@ export const login = async (req, res) => {
             rol: user.rol || 'usuario'
         }, process.env.JWT_SECRET, { expiresIn: '1h' });
         
-        console.log('🍪 Configurando cookie para:', email);
-        console.log('🌐 Entorno:', process.env.NODE_ENV);
-        
         res.cookie('access_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -55,8 +50,6 @@ export const login = async (req, res) => {
             maxAge: 60 * 60 * 1000,
             path: '/'
         });
-        
-        console.log('✅ Cookie configurada exitosamente');
 
         const userInfo = {
             id: user.id,
