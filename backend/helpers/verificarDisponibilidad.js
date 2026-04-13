@@ -1,6 +1,6 @@
 import db from '../database.js';
 
-export const verificarDisponibilidad = async (fecha, hora, horaTermino, concurrentSessions) => {
+export const verificarDisponibilidad = async (fecha, hora, horaTermino, box, concurrentSessions) => {
   try {
 
     if (!concurrentSessions) {

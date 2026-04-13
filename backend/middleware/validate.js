@@ -18,8 +18,9 @@ export const validate = (schema) => {
     } catch (error) {
       // Manejar errores de validación de Zod
       if (error instanceof ZodError) {
-        // Formatear errores para una respuesta clara
-        const errors = error.errors.map(err => ({
+        // Zod v4 usa error.issues (error.errors fue eliminado en v4)
+        const issues = error.issues || [];
+        const errors = issues.map(err => ({
           field: err.path.join('.'),
           message: err.message
         }));
@@ -27,7 +28,7 @@ export const validate = (schema) => {
         return res.status(400).json({
           error: "Error de validación",
           details: errors,
-          message: errors[0].message // Primer error para compatibilidad
+          message: errors[0]?.message
         });
       }
       
