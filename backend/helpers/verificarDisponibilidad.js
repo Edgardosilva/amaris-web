@@ -11,10 +11,10 @@ export const verificarDisponibilidad = async (fecha, hora, horaTermino, box, con
     const querySolapamientos = `
         SELECT box, concurrent_sessions 
         FROM horarios_ocupados 
-        WHERE fecha = ? AND hora BETWEEN ? AND ?
+        WHERE fecha = $1 AND hora BETWEEN $2 AND $3
       `;
 
-    const [solapados] = await db.execute(querySolapamientos, [fecha, hora, horaTermino]);
+    const { rows: solapados } = await db.query(querySolapamientos, [fecha, hora, horaTermino]);
 
  
     if (concurrentSessions === 1) {

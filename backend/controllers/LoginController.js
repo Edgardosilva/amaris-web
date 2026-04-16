@@ -7,13 +7,13 @@ export const register = async (req, res) => {
     const { nombre, apellido, email, contraseña, telefono } = req.body;
 
     try {
-        const [rows] = await db.query('SELECT id FROM usuarios_registrados WHERE email = ?', [email]);
+        const { rows } = await db.query('SELECT id FROM usuarios_registrados WHERE email = $1', [email]);
         if (rows.length) return res.status(409).json({ error: "El usuario ya existe" });
 
         const hashedPassword = await bcrypt.hash(contraseña, 10);
         // Rol por defecto es 'usuario'
         await db.query(
-            'INSERT INTO usuarios_registrados (nombre, apellido, email, contraseña, telefono, rol) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO usuarios_registrados (nombre, apellido, email, contraseña, telefono, rol) VALUES ($1, $2, $3, $4, $5, $6)',
             [nombre, apellido, email, hashedPassword, telefono, 'usuario']
         );
 
@@ -29,7 +29,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     const { email, contraseña } = req.body;
     try {
-        const [rows] = await db.query('SELECT * FROM usuarios_registrados WHERE email = ?', [email]);
+        const { rows } = await db.query('SELECT * FROM usuarios_registrados WHERE email = $1', [email]);
         if (!rows.length) return res.status(401).json({ error: "Credenciales inválidas" });
 
         const user = rows[0];

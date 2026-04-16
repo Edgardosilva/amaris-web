@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import proceduresRouter from './routes/procedures.js';
 import appoimentsRouter from './routes/appoiments.js';
 import loginRouter from './routes/login.js';
@@ -15,12 +16,19 @@ app.use(express.json());
 app.use(cookieParser());
 app.disable('x-powered-by');
 
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
+
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3001';
 
 const allowedOrigins = [
   FRONTEND_URL,
   'http://localhost:3001',
-  'https://amaris-frontend-production.up.railway.app'
 ];
 
 const corsOptions = {

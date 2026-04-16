@@ -18,13 +18,13 @@ export const searchPatients = async (req, res) => {
           LIMIT 1
         ) as ultimo_procedimiento,
         (
-          SELECT GROUP_CONCAT(DISTINCT ur.email SEPARATOR ', ')
+          SELECT STRING_AGG(DISTINCT ur.email, ', ')
           FROM citas_agendadas ca3
           JOIN usuarios_registrados ur ON ca3.usuario_id = ur.id
           WHERE ca3.paciente_atendido = ca.paciente_atendido
         ) as emails_registrados,
         (
-          SELECT GROUP_CONCAT(DISTINCT ur.telefono SEPARATOR ', ')
+          SELECT STRING_AGG(DISTINCT ur.telefono, ', ')
           FROM citas_agendadas ca4
           JOIN usuarios_registrados ur ON ca4.usuario_id = ur.id
           WHERE ca4.paciente_atendido = ca.paciente_atendido
@@ -36,7 +36,7 @@ export const searchPatients = async (req, res) => {
     const params = [];
 
     if (query && query.trim() !== '') {
-      sqlQuery += ` AND ca.paciente_atendido LIKE ?`;
+      sqlQuery += ` AND ca.paciente_atendido ILIKE $1`;
       const searchTerm = `%${query}%`;
       params.push(searchTerm);
     }
@@ -46,7 +46,7 @@ export const searchPatients = async (req, res) => {
       ORDER BY ultima_atencion DESC
     `;
 
-    const [patients] = await db.execute(sqlQuery, params);
+    const { rows: patients } = await db.query(sqlQuery, params);
     
     res.status(200).json({ patients });
   } catch (error) {
@@ -70,7 +70,7 @@ export const getPatientHistory = async (req, res) => {
         ca.id,
         ca.fecha,
         ca.hora,
-        ca.horaTermino,
+        ca."horaTermino",
         ca.duracion,
         ca.box,
         ca.estado,
@@ -83,10 +83,10 @@ export const getPatientHistory = async (req, res) => {
       FROM citas_agendadas ca
       JOIN procedimientos_disponibles pd ON ca.procedimiento_id = pd.id
       JOIN usuarios_registrados ur ON ca.usuario_id = ur.id
-      WHERE ca.paciente_atendido = ?
+      WHERE ca.paciente_atendido = $1
       ORDER BY ca.fecha DESC, ca.hora DESC
     `;
-    const [history] = await db.execute(historyQuery, [pacienteNombre]);
+    const { rows: history } = await db.query(historyQuery, [pacienteNombre]);
 
     if (history.length === 0) {
       return res.status(404).json({ error: "No se encontró historial para este paciente" });

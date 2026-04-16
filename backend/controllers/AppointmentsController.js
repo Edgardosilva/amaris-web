@@ -14,7 +14,7 @@ export const getAllAppointments = async (req, res) => {
         ca.id,
         ca.fecha,
         ca.hora,
-        ca.horaTermino,
+        ca."horaTermino",
         ca.duracion,
         ca.box,
         ca.estado,
@@ -27,7 +27,7 @@ export const getAllAppointments = async (req, res) => {
       ORDER BY ca.fecha DESC, ca.hora DESC;
     `;
     
-    const [appointments] = await db.execute(query);
+    const { rows: appointments } = await db.query(query);
     
     console.log(`✅ [ADMIN] ${appointments.length} citas encontradas`);
     res.status(200).json({ appointments });
@@ -59,10 +59,10 @@ export const getAvailableAppointments = async (req, res) => {
 
     // Consulta horarios ocupados con procedimiento_id
     const query = `
-      SELECT hora, horaTermino, box, procedimiento_id FROM horarios_ocupados
-      WHERE fecha = ?
+      SELECT hora, "horaTermino", box, procedimiento_id FROM horarios_ocupados
+      WHERE fecha = $1
     `;
-    const [occupiedSchedules] = await db.execute(query, [selectedDate]);
+    const { rows: occupiedSchedules } = await db.query(query, [selectedDate]);
     const allTimes = generateTimeSlots("09:00", "18:00", 15); 
     
     const availableTimes = allTimes.filter((time) => {
@@ -186,20 +186,20 @@ export const createAppointment = async (req, res) => {
 
     // Insertar en horarios_ocupados
     const queryInsert = `
-      INSERT INTO horarios_ocupados (fecha, hora, horaTermino, procedimiento_id, box, concurrent_sessions)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO horarios_ocupados (fecha, hora, "horaTermino", procedimiento_id, box, concurrent_sessions)
+      VALUES ($1, $2, $3, $4, $5, $6)
     `;
-    await db.execute(queryInsert, [
+    await db.query(queryInsert, [
       fecha, hora, horaTermino, procedimiento_id, boxAsignado, concurrentSessions
     ]);
 
     // Insertar en citas_agendadas con estado "Confirmada" por defecto
     const queryInsertCitas = `
       INSERT INTO citas_agendadas 
-      (usuario_id, procedimiento_id, duracion, box, estado, fecha, hora, horaTermino, paciente_atendido)
-      VALUES (?, ?, ?, ?, 'Confirmada', ?, ?, ?, ?);
+      (usuario_id, procedimiento_id, duracion, box, estado, fecha, hora, "horaTermino", paciente_atendido)
+      VALUES ($1, $2, $3, $4, 'Confirmada', $5, $6, $7, $8)
     `;
-    await db.execute(queryInsertCitas, [
+    await db.query(queryInsertCitas, [
       usuarioId,
       procedimiento_id,
       duracion,
@@ -238,7 +238,7 @@ export const getUserAppointments = async (req, res) => {
           ca.id,
           ca.fecha,
           ca.hora,
-          ca.horaTermino,
+          ca."horaTermino",
           ca.duracion,
           ca.box,
           ca.estado,
@@ -248,10 +248,10 @@ export const getUserAppointments = async (req, res) => {
         FROM citas_agendadas ca
         JOIN procedimientos_disponibles pd ON ca.procedimiento_id = pd.id
         JOIN usuarios_registrados ur ON ca.usuario_id = ur.id
-        WHERE ca.usuario_id = ?
-        ORDER BY ca.fecha DESC, ca.hora DESC;
+        WHERE ca.usuario_id = $1
+        ORDER BY ca.fecha DESC, ca.hora DESC
     `;
-    const [appointments] = await db.execute(query, [usuario_id]);
+    const { rows: appointments } = await db.query(query, [usuario_id]);
     res.status(200).json({ appointments });
   } catch (error) {
     console.error('Error al obtener citas:', error.message);
@@ -267,7 +267,7 @@ export const deleteAppointment = async (req, res) => {
       return res.status(400).json({ message: 'ID de cita requerido' });
     }
 
-    const [result] = await db.execute('SELECT * FROM citas_agendadas WHERE id = ?', [id]);
+    const { rows: result } = await db.query('SELECT * FROM citas_agendadas WHERE id = $1', [id]);
 
     if (!result.length) {
       return res.status(404).json({ message: 'Cita no encontrada' });
@@ -284,7 +284,7 @@ export const deleteAppointment = async (req, res) => {
       return res.status(400).json({ message: 'No se puede eliminar una cita con menos de 24 horas de anticipación.' });
     }
 
-    await db.execute('DELETE FROM citas_agendadas WHERE id = ?', [id]);
+    await db.query('DELETE FROM citas_agendadas WHERE id = $1', [id]);
 
     return res.status(200).json({ message: 'Cita eliminada correctamente' });
   } catch (error) {

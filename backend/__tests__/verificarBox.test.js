@@ -35,10 +35,13 @@
 
 import { jest } from '@jest/globals';
 
+const mockQuery = jest.fn();
+
 // Mockear el módulo de database antes de importar verificarBox
 jest.unstable_mockModule('../database.js', () => ({
   default: {
-    execute: jest.fn()
+    query: mockQuery,
+    execute: mockQuery,
   }
 }));
 
@@ -61,7 +64,7 @@ describe('verificarBox - Asignación de Boxes', () => {
     
     test('Debe asignar "Gym" cuando está disponible', async () => {
       // DADO: No hay citas en el horario solicitado
-      mockDb.execute.mockResolvedValue([[]]);
+      mockDb.execute.mockResolvedValue({ rows: [] });
 
       // CUANDO: Se intenta agendar Entrenamiento Funcional
       const resultado = await verificarBox(
@@ -80,13 +83,13 @@ describe('verificarBox - Asignación de Boxes', () => {
 
     test('Debe retornar null cuando Gym está ocupado', async () => {
       // DADO: Gym ya está ocupado en ese horario
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { 
           box: 'Gym', 
           concurrent_sessions: 1, 
           procedimiento_id: 6 // Otro entrenamiento
         }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar Entrenamiento Funcional
       const resultado = await verificarBox(
@@ -111,7 +114,7 @@ describe('verificarBox - Asignación de Boxes', () => {
     
     test('Debe asignar "Box 2" cuando está disponible', async () => {
       // DADO: No hay citas en el horario
-      mockDb.execute.mockResolvedValue([[]]);
+      mockDb.execute.mockResolvedValue({ rows: [] });
 
       // CUANDO: Se intenta agendar Radiofrecuencia
       const resultado = await verificarBox(
@@ -129,13 +132,13 @@ describe('verificarBox - Asignación de Boxes', () => {
 
     test('Debe retornar null cuando Box 2 está ocupado', async () => {
       // DADO: Box 2 ya está ocupado
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { 
           box: 'Box 2', 
           concurrent_sessions: 1, 
           procedimiento_id: 10 
         }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar Radiofrecuencia
       const resultado = await verificarBox(
@@ -160,13 +163,13 @@ describe('verificarBox - Asignación de Boxes', () => {
     
     test('Debe asignar box cuando NO hay otra limpieza facial', async () => {
       // DADO: No hay limpiezas faciales en ese horario
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { 
           box: 'Box 1', 
           concurrent_sessions: 3, 
           procedimiento_id: 5 // Masaje (no es limpieza)
         }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar una Limpieza Facial
       const resultado = await verificarBox(
@@ -185,13 +188,13 @@ describe('verificarBox - Asignación de Boxes', () => {
 
     test('Debe rechazar si YA hay otra limpieza facial', async () => {
       // DADO: Ya hay una limpieza facial (ID: 1) en ese horario
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { 
           box: 'Box 1', 
           concurrent_sessions: 1, 
           procedimiento_id: 1 // Limpieza Facial Básica
         }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar otra limpieza facial (ID: 2)
       const resultado = await verificarBox(
@@ -209,13 +212,13 @@ describe('verificarBox - Asignación de Boxes', () => {
 
     test('Limpieza facial puede coexistir con otros procedimientos', async () => {
       // DADO: Hay una limpieza facial en Box 1
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { 
           box: 'Box 1', 
           concurrent_sessions: 1, 
           procedimiento_id: 1 // Limpieza Facial
         }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar un Masaje (no es limpieza)
       const resultado = await verificarBox(
@@ -241,10 +244,10 @@ describe('verificarBox - Asignación de Boxes', () => {
     
     test('Debe asignar box cuando hay capacidad disponible', async () => {
       // DADO: Solo 2 boxes ocupados
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { box: 'Box 1', concurrent_sessions: 3, procedimiento_id: 5 },
         { box: 'Box 2', concurrent_sessions: 3, procedimiento_id: 7 }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar un nuevo procedimiento
       const resultado = await verificarBox(
@@ -262,11 +265,11 @@ describe('verificarBox - Asignación de Boxes', () => {
 
     test('Debe rechazar cuando los 3 boxes están ocupados', async () => {
       // DADO: Los 3 boxes están ocupados
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { box: 'Box 1', concurrent_sessions: 3, procedimiento_id: 5 },
         { box: 'Box 2', concurrent_sessions: 3, procedimiento_id: 7 },
         { box: 'Box 3', concurrent_sessions: 1, procedimiento_id: 8 }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar un nuevo procedimiento
       const resultado = await verificarBox(
@@ -291,9 +294,9 @@ describe('verificarBox - Asignación de Boxes', () => {
     
     test('Debe asignar cualquier box disponible para masajes', async () => {
       // DADO: Box 1 ocupado
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { box: 'Box 1', concurrent_sessions: 3, procedimiento_id: 5 }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar un Masaje (cs=3, compartible)
       const resultado = await verificarBox(
@@ -324,11 +327,11 @@ describe('verificarBox - Asignación de Boxes', () => {
       // - Intentando agendar: 1 Entrenamiento en Gym
       
       // DADO: Los 3 boxes ocupados, pero Gym libre
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { box: 'Box 1', concurrent_sessions: 1, procedimiento_id: 1 }, // Limpieza
         { box: 'Box 2', concurrent_sessions: 3, procedimiento_id: 5 }, // Masaje
         { box: 'Box 3', concurrent_sessions: 1, procedimiento_id: 8 }  // Presoterapia
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar Entrenamiento
       const resultado = await verificarBox(
@@ -353,9 +356,9 @@ describe('verificarBox - Asignación de Boxes', () => {
     
     test('Debe detectar conflicto cuando horario solapa al inicio', async () => {
       // DADO: Box 1 ocupado de 10:00 a 11:30
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { box: 'Box 1', concurrent_sessions: 1, procedimiento_id: 2 }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar de 10:15 a 11:45 (solapa con Box 1)
       const resultado = await verificarBox(
@@ -373,9 +376,9 @@ describe('verificarBox - Asignación de Boxes', () => {
 
     test('Debe detectar conflicto cuando horario solapa al final', async () => {
       // DADO: Box 1 ocupado de 10:00 a 11:30
-      mockDb.execute.mockResolvedValue([[
+      mockDb.execute.mockResolvedValue({ rows: [
         { box: 'Box 1', concurrent_sessions: 3, procedimiento_id: 5 }
-      ]]);
+      ] });
 
       // CUANDO: Se intenta agendar de 09:30 a 10:30 (termina durante otra cita)
       const resultado = await verificarBox(

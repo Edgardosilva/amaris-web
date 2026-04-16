@@ -5,14 +5,14 @@ export const verificarBox = async (fecha, hora, horaTermino, box, concurrentSess
     const querySolapamientos = `
       SELECT box, concurrent_sessions, procedimiento_id 
       FROM horarios_ocupados 
-      WHERE fecha = ? AND (
-        (hora >= ? AND hora < ?) OR 
-        (horaTermino > ? AND horaTermino <= ?) OR 
-        (hora <= ? AND horaTermino >= ?)
+      WHERE fecha = $1 AND (
+        (hora >= $2 AND hora < $3) OR 
+        ("horaTermino" > $4 AND "horaTermino" <= $5) OR 
+        (hora <= $6 AND "horaTermino" >= $7)
       )
     `;
 
-    const [solapados] = await db.execute(querySolapamientos, [
+    const { rows: solapados } = await db.query(querySolapamientos, [
       fecha,
       hora,
       horaTermino,
