@@ -12,11 +12,8 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
   },
-  webpack(config, { nextRuntime }) {
-    if (nextRuntime === 'edge') {
-      config.node = { __dirname: true };
-    }
-    return config;
+  experimental: {
+    nodeMiddleware: true,
   },
 }
 
