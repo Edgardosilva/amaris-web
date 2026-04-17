@@ -59,79 +59,13 @@ amaris-landing/
 - **Hosting**: Google **Cloud Run** (us-central1)
 - **CI/CD**: GitHub Actions con Workload Identity Federation
 - **Authentication**: JWT + HttpOnly Cookies
-- **Email**: Nodemailer (Gmail)
 - **Security**: bcryptjs, CORS, express-rate-limit (60 req/min por IP)
 
 ## 🎨 Colores de Marca
 - **Primario**: `#52a2b2` (Azul Amaris)
 - **Acento**: `#a6d230` (Verde)
 
-## 💻 Desarrollo Local
-
-### Requisitos Previos
-- Node.js 20+ instalado
-- Acceso a la base de datos Supabase (o PostgreSQL local)
-- Cuenta de Gmail con App Password para emails
-
-### 1. Clonar el Repositorio
-```bash
-git clone https://github.com/Edgardosilva/amairs-front.git
-cd amaris-landing
-```
-
-### 2. Configurar Backend
-
-```bash
-cd backend
-npm install
-```
-
-Crear archivo `.env` con:
-```env
-PORT=3000
-JWT_SECRET=your-secret-key-here
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASS=your-app-password
-
-# Connection string de Supabase (o PostgreSQL local)
-DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
-
-# URLs para desarrollo local
-FRONTEND_URL=http://localhost:3001
-```
-
-Iniciar servidor:
-```bash
-npm run dev
-```
-Backend corriendo en: `http://localhost:3000`
-
-### 3. Configurar Frontend
-
-```bash
-cd frontend
-npm install
-```
-
-Crear archivo `.env.local` con:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
-```
-
-Iniciar servidor:
-```bash
-npm run dev
-```
-Frontend corriendo en: `http://localhost:3001`
-
-### 4. Iniciar Ambos Servicios (Opcional)
-
-Desde la raíz del proyecto:
-```bash
-./dev.sh
-```
-
-## 🚀 Despliegue
+##  Despliegue
 
 ### Arquitectura de Producción
 
@@ -167,11 +101,6 @@ El sistema usa JWT con HttpOnly cookies para seguridad:
 3. Frontend extrae el token y lo guarda
 4. Las peticiones subsecuentes incluyen el token automáticamente
 
-## � Sistema de Emails
-
-- **Confirmación de Cita**: Email automático con link de confirmación
-- **Procesamiento**: Asíncrono (no bloquea la respuesta del servidor)
-- **Template**: HTML personalizado con colores de marca
 
 ## 🎯 Funcionalidades Principales
 
@@ -179,7 +108,6 @@ El sistema usa JWT con HttpOnly cookies para seguridad:
 - ✅ Registro e inicio de sesión
 - ✅ Ver catálogo de servicios
 - ✅ Agendar citas (flujo de 4 pasos)
-- ✅ Confirmar citas por email
 - ✅ Ver historial de citas en dashboard
 - ✅ Responsive design (mobile-first)
 
@@ -188,28 +116,9 @@ El sistema usa JWT con HttpOnly cookies para seguridad:
 2. **Paso 2**: Selección de servicio/procedimiento
 3. **Paso 3**: Elección de fecha y hora disponible
 4. **Paso 4**: Resumen y confirmación
-5. **Email**: Confirmación automática con link
-6. **Dashboard**: Visualización de citas agendadas
+5. **Dashboard**: Visualización de citas agendadas
 
-## 🔧 Scripts Disponibles
-
-### Frontend
-```bash
-npm run dev          # Desarrollo (puerto 3001)
-npm run build        # Build para producción
-npm start            # Iniciar producción
-npm run lint         # Linter
-```
-
-### Backend
-```bash
-npm run dev          # Desarrollo con nodemon (puerto 3000)
-npm start            # Iniciar producción
-npm test             # Ejecutar tests (Jest)
-npm run test:coverage # Tests con reporte de cobertura
-```
-
-## 📝 Notas Técnicas
+##  Notas Técnicas
 
 ### Estado Global (Zustand)
 El estado se persiste en `localStorage` con la key `"amaris-form-storage"`:
@@ -225,34 +134,9 @@ Next.js 15 usa Server Actions para las peticiones al backend:
 - `app/actions/horarios.ts` — Disponibilidad
 
 ### Optimizaciones
-- ✅ Emails asíncronos (no bloquean respuesta HTTP)
 - ✅ Rate limiting: 60 req/min por IP
 - ✅ Caché de Next.js configurado
 - ✅ Componentes optimizados con React 19
 - ✅ Imágenes optimizadas con Next/Image
 
-## 🐛 Troubleshooting
 
-### Frontend sin estilos
-```bash
-cd frontend
-rm -rf .next node_modules
-npm install
-npm run dev
-```
-
-### Backend no conecta a DB
-Verificar que `DATABASE_URL` en `.env` sea el connection string correcto de Supabase (incluir `?sslmode=require`).
-
-### CORS Errors
-Verificar que `FRONTEND_URL` en backend `.env` (o en Secret Manager en producción) coincida exactamente con la URL del frontend.
-
-
-
-## 📄 Licencia
-
-Proyecto privado - Amaris Centro de Kinesiología Estética
-
-## 👥 Contacto
-
-Para consultas sobre el proyecto: [contacto@amaris.cl](mailto:contacto@amaris.cl)
