@@ -121,10 +121,9 @@ El sistema usa JWT con HttpOnly cookies para seguridad:
 ##  Notas Técnicas
 
 ### Estado Global (Zustand)
-El estado se persiste en `localStorage` con la key `"amaris-form-storage"`:
-- Datos del usuario autenticado
-- Progreso del flujo de reserva
-- Datos del formulario entre pasos
+Dos stores con persist middleware:
+- **`useFormStore`** (`amaris-form-storage`) — progreso del flujo de reserva y datos del formulario entre pasos
+- **`useAuthStore`** (`auth-storage`) — datos del usuario autenticado y estado de sesión
 
 ### Server Actions
 Next.js 15 usa Server Actions para las peticiones al backend:
