@@ -3,7 +3,7 @@ import db from '../database.js';
 import jwt from 'jsonwebtoken';
 
 export const register = async (req, res) => {
-    // Los datos ya están validados y sanitizados por el middleware de Zod
+    // Los datos ya están validados / sanitizados por el middleware de Zod
     const { nombre, apellido, email, contraseña, telefono } = req.body;
 
     try {

@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'backend/**'
+  workflow_dispatch: # permite correrlo manualmente desde GitHub
 
 env:
   PROJECT_ID: ${{ vars.PROJECT_ID }}
