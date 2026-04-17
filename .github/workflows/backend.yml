@@ -11,7 +11,7 @@ on:
 env:
   PROJECT_ID: ${{ vars.PROJECT_ID }}
   REGION: us-central1
-  SERVICE: amaris-backend
+  SERVICE: amaris
   WORKLOAD_IDENTITY_PROVIDER: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
 
 jobs:
