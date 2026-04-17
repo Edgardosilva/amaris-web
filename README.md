@@ -2,20 +2,20 @@
 
 Sistema completo de gestión de citas para Amaris, desarrollado con Next.js 15 y Node.js/Express.
 
-> 📖 **Para instrucciones detalladas de despliegue en Railway**, consulta [RAILWAY_DEPLOY.md](./RAILWAY_DEPLOY.md)
-
 ## 📁 Estructura del Proyecto
 
 ```
 amaris-landing/
-├── frontend/              # Next.js 15.5.4 - App Router
+├── .github/
+│   └── workflows/
+│       └── backend.yml        # Pipeline CI/CD → Cloud Run
+├── frontend/                  # Next.js 15.5.4 - App Router (Vercel)
 │   ├── app/              # Rutas y páginas
 │   │   ├── page.tsx                    # Página principal
 │   │   ├── login/                      # Login
 │   │   ├── register/                   # Registro
 │   │   ├── servicios/                  # Catálogo de servicios
 │   │   ├── dashboard/                  # Dashboard de usuario
-│   │   ├── confirmar-cita/[token]/    # Confirmación de citas
 │   │   └── agendar/                   # Flujo de reserva (4 pasos)
 │   │       ├── paso-1/                # Datos personales
 │   │       ├── paso-2/                # Selección de servicio
@@ -28,11 +28,13 @@ amaris-landing/
 │   ├── hooks/           # Custom hooks (Zustand store)
 │   └── lib/             # Utilidades
 │
-├── backend/             # Node.js + Express + MySQL
-│   ├── controllers/    # Lógica de negocio
-│   ├── routes/         # Rutas de la API
-│   ├── helpers/        # Servicios (email, validaciones)
-│   └── database.js     # Configuración MySQL
+├── backend/                  # Node.js + Express + PostgreSQL (Cloud Run)
+│   ├── controllers/         # Lógica de negocio
+│   ├── routes/              # Rutas de la API
+│   ├── helpers/             # Servicios (email, validaciones)
+│   ├── middleware/          # Auth, validación, rate limiting
+│   ├── Dockerfile           # Imagen para Cloud Run
+│   └── database.js          # Conexión PostgreSQL (Supabase)
 │
 └── README.md
 ```
@@ -41,6 +43,7 @@ amaris-landing/
 
 ### Frontend
 - **Framework**: Next.js 15.5.4 (App Router, Server Actions)
+- **Hosting**: Vercel
 - **Styling**: Tailwind CSS v3.4 + shadcn/ui
 - **State Management**: Zustand (con persist middleware)
 - **Forms**: React Hook Form + Zod
@@ -50,12 +53,14 @@ amaris-landing/
 - **Notifications**: SweetAlert2, Sonner
 
 ### Backend
-- **Runtime**: Node.js
+- **Runtime**: Node.js 20
 - **Framework**: Express.js
-- **Database**: MySQL (Railway)
+- **Database**: PostgreSQL vía **Supabase**
+- **Hosting**: Google **Cloud Run** (us-central1)
+- **CI/CD**: GitHub Actions con Workload Identity Federation
 - **Authentication**: JWT + HttpOnly Cookies
 - **Email**: Nodemailer (Gmail)
-- **Security**: bcryptjs, CORS
+- **Security**: bcryptjs, CORS, express-rate-limit (60 req/min por IP)
 
 ## 🎨 Colores de Marca
 - **Primario**: `#52a2b2` (Azul Amaris)
@@ -64,8 +69,8 @@ amaris-landing/
 ## 💻 Desarrollo Local
 
 ### Requisitos Previos
-- Node.js 18+ instalado
-- MySQL disponible (local o remoto)
+- Node.js 20+ instalado
+- Acceso a la base de datos Supabase (o PostgreSQL local)
 - Cuenta de Gmail con App Password para emails
 
 ### 1. Clonar el Repositorio
@@ -87,14 +92,11 @@ PORT=3000
 JWT_SECRET=your-secret-key-here
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
-DB_HOST=your-db-host
-DB_USER=root
-DB_PASSWORD=your-db-password
-DB_NAME=railway
-DB_PORT=3306
+
+# Connection string de Supabase (o PostgreSQL local)
+DATABASE_URL=postgresql://user:password@host:5432/dbname?sslmode=require
 
 # URLs para desarrollo local
-API_URL=http://localhost:3000
 FRONTEND_URL=http://localhost:3001
 ```
 
@@ -129,54 +131,33 @@ Desde la raíz del proyecto:
 ./dev.sh
 ```
 
-## 🚀 Despliegue en Railway
+## 🚀 Despliegue
 
-### Opción 1: Dos Servicios Separados
+### Arquitectura de Producción
 
-#### Backend
-1. Crear nuevo servicio en Railway
-2. Conectar repositorio GitHub
-3. Configurar:
-   - **Root Directory**: `backend`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Variables de Entorno**:
-     ```
-     PORT=3000
-     JWT_SECRET=your-production-secret
-     EMAIL_USER=your-email@gmail.com
-     EMAIL_PASS=your-app-password
-     DB_HOST=railway-db-host
-     DB_USER=root
-     DB_PASSWORD=railway-db-password
-     DB_NAME=railway
-     DB_PORT=3306
-     API_URL=https://your-backend-url.railway.app
-     FRONTEND_URL=https://your-frontend-url.vercel.app
-     ```
+| Servicio | Plataforma | URL |
+|----------|-----------|-----|
+| Frontend | Vercel | https://amairsweb.vercel.app |
+| Backend API | Google Cloud Run | Se obtiene al desplegar |
+| Base de datos | Supabase (PostgreSQL) | Gestionado en Supabase |
 
-#### Frontend
-1. Crear nuevo servicio en Railway (o Vercel)
-2. Configurar:
-   - **Root Directory**: `frontend`
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm start`
-   - **Variables de Entorno**:
-     ```
-     NEXT_PUBLIC_API_URL=https://your-backend-url.railway.app
-     ```
+### CI/CD — GitHub Actions
 
-### Opción 2: Monorepo en Railway
+El pipeline (`.github/workflows/backend.yml`) se activa automáticamente al hacer push a `main` con cambios en `backend/`.
 
-Usar el archivo `railway.json` incluido en la raíz del proyecto.
+1. **Test** — Ejecuta la suite de tests con Jest
+2. **Auth** — Autenticación keyless con Google Cloud via Workload Identity Federation
+3. **Build & Push** — Construye la imagen Docker y la publica en Artifact Registry
+4. **Deploy** — Despliega la nueva imagen en Cloud Run
 
-## 📦 Estructura de la Base de Datos
+## �️ Base de Datos (Supabase + PostgreSQL)
+
 
 ### Tablas Principales
-- `usuarios_registrados` - Usuarios del sistema
-- `procedimientos_disponibles` - Catálogo de servicios
-- `citas_agendadas` - Reservas y citas
-- `horarios_disponibles` - Disponibilidad de horarios
+- `usuarios_registrados` — Usuarios del sistema
+- `procedimientos_disponibles` — Catálogo de servicios
+- `citas_agendadas` — Reservas y citas
+- `horarios_disponibles` — Disponibilidad de horarios
 
 ## 🔐 Autenticación
 
@@ -216,14 +197,16 @@ El sistema usa JWT con HttpOnly cookies para seguridad:
 ```bash
 npm run dev          # Desarrollo (puerto 3001)
 npm run build        # Build para producción
-npm start           # Iniciar producción
-npm run lint        # Linter
+npm start            # Iniciar producción
+npm run lint         # Linter
 ```
 
 ### Backend
 ```bash
-npm run dev         # Desarrollo con nodemon (puerto 3000)
-npm start          # Iniciar producción
+npm run dev          # Desarrollo con nodemon (puerto 3000)
+npm start            # Iniciar producción
+npm test             # Ejecutar tests (Jest)
+npm run test:coverage # Tests con reporte de cobertura
 ```
 
 ## 📝 Notas Técnicas
@@ -236,13 +219,14 @@ El estado se persiste en `localStorage` con la key `"amaris-form-storage"`:
 
 ### Server Actions
 Next.js 15 usa Server Actions para las peticiones al backend:
-- `app/actions/auth.ts` - Login/Registro
-- `app/actions/citas.ts` - Crear citas
-- `app/actions/appointments.ts` - Obtener citas
-- `app/actions/horarios.ts` - Disponibilidad
+- `app/actions/auth.ts` — Login/Registro
+- `app/actions/citas.ts` — Crear citas
+- `app/actions/appointments.ts` — Obtener citas
+- `app/actions/horarios.ts` — Disponibilidad
 
 ### Optimizaciones
 - ✅ Emails asíncronos (no bloquean respuesta HTTP)
+- ✅ Rate limiting: 60 req/min por IP
 - ✅ Caché de Next.js configurado
 - ✅ Componentes optimizados con React 19
 - ✅ Imágenes optimizadas con Next/Image
@@ -258,10 +242,12 @@ npm run dev
 ```
 
 ### Backend no conecta a DB
-Verificar variables de entorno en `.env` y conexión a MySQL
+Verificar que `DATABASE_URL` en `.env` sea el connection string correcto de Supabase (incluir `?sslmode=require`).
 
 ### CORS Errors
-Verificar que `FRONTEND_URL` en backend `.env` coincida con la URL del frontend
+Verificar que `FRONTEND_URL` en backend `.env` (o en Secret Manager en producción) coincida exactamente con la URL del frontend.
+
+
 
 ## 📄 Licencia
 
@@ -270,13 +256,3 @@ Proyecto privado - Amaris Centro de Kinesiología Estética
 ## 👥 Contacto
 
 Para consultas sobre el proyecto: [contacto@amaris.cl](mailto:contacto@amaris.cl)
-- `JWT_SECRET`
-- `EMAIL_HOST`
-- `EMAIL_USER`
-- `EMAIL_PASSWORD`
-- (Agregar las que uses)
-
-## 🔗 URLs
-
-- Frontend: https://amairsweb.vercel.app
-- Backend API: https://amaris-api-production.up.railway.app
